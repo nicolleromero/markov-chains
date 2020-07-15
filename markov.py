@@ -2,6 +2,7 @@
 import re
 import sys
 import random
+from pprint import pprint
 
 
 def open_and_read_file():
@@ -46,45 +47,23 @@ def make_chains():
     # Open the file and turn it into one long string
     contents = open_and_read_file()
 
-    words_list = re.split('\s|\n', contents)
 
-    words_list.remove('')
+    # List of individual words
+    words_list = re.split('\s+', contents)
 
+    if '' in words_list:
+        words_list.remove('')
+    
+    # new_list is a list of tuples (that correspond to keys)
     new_list = []
+    for i, word in enumerate(words_list[:-1]):
+        new_list.append((words_list[i], words_list[i + 1]))
 
-    i = len(words_list)
-    for i, word in enumerate(words_list):
-        new_list.append((words_list[i - 1], words_list[i]))
-
-    for tup in new_list:
-        chains[tup] = []
-
-    temp = []
-    idx = 0
-
-    while idx < len(new_list) - 1:
-        for k,v in chains.items():
-            if k == new_list[idx]:
-                v.append(new_list[idx + 1][1])
-        idx += 1
-
-    for k,v in chains.items():
-        if v == []:
-            to_delete = k
-
-    del chains[to_delete]
-
-    for k,v in chains.items():
-        if k[0] == words_list[-1] and k[1] == words_list[0]:
-            to_delete = k
-
-    del chains[to_delete]
-
-    # del chains[('I', 'am?')]
-    # del chains[('am?', 'Would')]
-
-    # print(chains)
-    # print(len(chains))
+    for idx, tup in enumerate(new_list[:-1]):
+        next_word = new_list[idx + 1][1]
+        values = chains.setdefault(tup, [])
+        
+        values.append(next_word)
 
     return chains
 
@@ -93,44 +72,42 @@ def make_chains():
 def make_text():
     """Return text from chains."""
 
-    words = []
-
     # Get a Markov chain
     chains = make_chains()
-    max = len(chains.keys()) - 1
-
     chain_keys = list(chains.keys())
-    phrase = chain_keys[random.randint(0, max)] 
-    start_phrase_list = chains[phrase]
 
-    end = ''
-    end = list(chains.items())[-1]
-    stop = end[0][1] + " " + end[1][0]
+    # Must start with a a capital
+    while True:
+        try:
+            max = len(chains.keys()) - 1
+            phrase = chain_keys[random.randint(0, max)] 
+            phrase_list = chains[phrase]
+            random_word = phrase_list[random.randint(0, (len(phrase_list)) - 1)]
 
-    random_word = start_phrase_list[random.randint(0, (len(start_phrase_list)) - 1)]
-    
-    words.append(phrase[0] + " " + phrase[1] + " " + random_word)
+            if random_word and random_word[0].isupper():
+                break
 
+        except:
+            break
+
+    words = [random_word]
     phrase = (phrase[1], random_word)
 
     while True:
         try:
-            random_word = chains[phrase][random.randint(0, (len(chains[phrase])) - 1)]
+            max = len(chains[phrase]) - 1
+            random_word = chains[phrase][random.randint(0, max)]
             words.append(random_word)
             phrase = (phrase[1], random_word)
+
+
         except:
             break
 
-    final_text = " ".join(words)
 
-    final_text = final_text[0:1].upper() + final_text[1:]
-
-    return final_text
-
-
+    return " ".join(words)
 
 
 # Produce random text
-random_text = make_text()
+pprint(make_text())
 
-print(random_text)
