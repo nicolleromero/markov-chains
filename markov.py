@@ -1,4 +1,5 @@
 """Generate Markov text from text files."""
+
 import re
 import sys
 import random
@@ -6,15 +7,16 @@ from pprint import pprint
 
 
 def open_and_read_file():
-    """Take file path as string; return text as string.
-
-    Takes a string that is a file path, opens the file, and turns
-    the file's contents as one string of text.
+    """Takes any number of text files and turns
+    the files' contents into one string of text.
     """
 
-    contents = open(str(sys.argv[1])).read()
+    contents = ''
 
-    return contents
+    for text in range(2, len(sys.argv)):
+        contents += open(str(sys.argv[text])).read()
+
+    return contents.strip()
 
 
 def make_chains():
@@ -37,7 +39,7 @@ def make_chains():
 
         >>> chains[('hi', 'there')]
         ['mary', 'juanita']
-        
+
         >>> chains[('there','juanita')]
         [None]
     """
@@ -47,26 +49,20 @@ def make_chains():
     # Open the file and turn it into one long string
     contents = open_and_read_file()
 
-
-    # List of individual words
+    # Creates a list of individual words
     words_list = re.split('\s+', contents)
 
-    if '' in words_list:
-        words_list.remove('')
-    
-    # new_list is a list of tuples (that correspond to keys)
-    new_list = []
-    for i, word in enumerate(words_list[:-1]):
-        new_list.append((words_list[i], words_list[i + 1]))
+    # n is for the n-gram and is passed in as the second argument
+    n = int(sys.argv[1])
 
-    for idx, tup in enumerate(new_list[:-1]):
-        next_word = new_list[idx + 1][1]
-        values = chains.setdefault(tup, [])
-        
+    for idx, word in enumerate(words_list[:-n]):
+        ngram = tuple(words_list[idx: (idx + n)])
+        next_word = words_list[idx + n]
+
+        values = chains.setdefault(ngram, [])
         values.append(next_word)
 
     return chains
-
 
 
 def make_text():
@@ -76,13 +72,12 @@ def make_text():
     chains = make_chains()
     chain_keys = list(chains.keys())
 
-    # Must start with a a capital
+    # Randomly choose a word; must start with a capital letter
     while True:
         try:
-            max = len(chains.keys()) - 1
-            phrase = chain_keys[random.randint(0, max)] 
+            phrase = random.choice(chain_keys)
             phrase_list = chains[phrase]
-            random_word = phrase_list[random.randint(0, (len(phrase_list)) - 1)]
+            random_word = random.choice(phrase_list)
 
             if random_word and random_word[0].isupper():
                 break
@@ -91,23 +86,24 @@ def make_text():
             break
 
     words = [random_word]
-    phrase = (phrase[1], random_word)
+    phrase = (*phrase[1:], random_word)
 
+  # Continue adding words using random selection
     while True:
         try:
-            max = len(chains[phrase]) - 1
-            random_word = chains[phrase][random.randint(0, max)]
+            random_word = random.choice(chains[phrase])
             words.append(random_word)
-            phrase = (phrase[1], random_word)
+            phrase = (*phrase[1:], random_word)
 
+            # Breaks if the message is > 100 words and it ends with a period
+            if words[-1][-1] == '.' and len(words) > 100:
+                break
 
         except:
+            # Breaks if chain gets to the end (random selection results in error)
             break
-
 
     return " ".join(words)
 
 
-# Produce random text
 pprint(make_text())
-
